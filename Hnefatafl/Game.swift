@@ -16,7 +16,22 @@ struct Game {
     enum Player {
         case defender, attacker
     }
+    enum State {
+        case playing, defenderWon, attackerWon
+    }
     var currentPlayer = Player.defender
+    var calculatedCurrentState: Game.State {
+        guard board.contains(where: {$0 == .king}) else {
+            return .attackerWon
+        }
+        guard board[0] != .king &&
+              board[dimension-1] != .king &&
+              board[(dimension-1)*dimension] != .king &&
+              board[dimension*dimension-1] != .king else {
+            return .defenderWon
+        }
+        return .playing
+    }
     private var board: [Piece?]
     init() {
         board = [0,0,0,3,3,3,0,0,0,
