@@ -9,7 +9,8 @@
 import Foundation
 
 struct Game {
-    let dimension = 9
+    let dimension: Int
+    private let cornerIndices: [Int]
     enum Piece: Int {
         case king = 1, defender = 2, attacker = 3
     }
@@ -19,15 +20,12 @@ struct Game {
     enum State {
         case playing, defenderWon, attackerWon
     }
-    var currentPlayer = Player.defender
+    var currentPlayer = Player.attacker
     var calculatedCurrentState: Game.State {
         guard board.contains(where: {$0 == .king}) else {
             return .attackerWon
         }
-        guard board[0] != .king &&
-              board[dimension-1] != .king &&
-              board[(dimension-1)*dimension] != .king &&
-              board[dimension*dimension-1] != .king else {
+        guard cornerIndices.map({board[$0]}).contains(.king) == false else {
             return .defenderWon
         }
         return .playing
@@ -42,7 +40,9 @@ struct Game {
                  3,0,0,0,2,0,0,0,3,
                  0,0,0,0,2,0,0,0,0,
                  0,0,0,0,3,0,0,0,0,
-                 0,0,0,3,3,3,0,0,0].map( Piece.init(rawValue:))
+                 0,0,0,3,3,3,0,0,0].map(Piece.init(rawValue:))
+        dimension = 9
+        cornerIndices = [0, dimension-1, (dimension-1)*dimension, dimension*dimension-1]
     }
     func pieceAt(x: Int, y: Int) -> Piece? {
         return board[x + y * dimension]
@@ -66,13 +66,14 @@ struct Game {
         let upper = (stride(from: y+1, to: dimension, by: 1).first { board[x+$0*dimension] != nil } ?? dimension)
         let left = (stride(from: x-1, to: -1, by: -1).first { board[$0+y*dimension] != nil } ?? -1)
         let right = (stride(from: x+1, to: dimension, by: 1).first { board[$0+y*dimension] != nil } ?? dimension)
-        return [ stride(from: y-1, to: lower, by: -1).map { (x, $0) },
-                 (y+1..<upper).map { (x, $0) },
-                 stride(from: x-1, to: left, by: -1).map { ($0, y) },
-                 (x+1..<right).map { ($0, y)}
-            ].flatMap{ (element: [(Int, Int)]) in element}
+        let moves =  [ stride(from: y-1, to: lower, by: -1).map { (x, $0) },
+                       (y+1..<upper).map { (x, $0) },
+                       stride(from: x-1, to: left, by: -1).map { ($0, y) },
+                       (x+1..<right).map { ($0, y)}
+                    ].flatMap{ (element: [(Int, Int)]) in element}
+        return board[x+y*dimension] == .king ? moves : moves.filter {!cornerIndices.contains($0.0+$0.1*dimension)}
     }
-    @discardableResult mutating func moveFrom(_ start: (x:Int,y:Int), to end: (Int,Int)) -> [(Int,Int)] {
+    mutating func moveFrom(_ start: (x:Int,y:Int), to end: (Int,Int)) -> [(Int,Int)] {
         let (x,y) = end
         board.swapAt(x+y*dimension, start.x + start.y*dimension)
         let piecesToCaputure: Set<Piece> = currentPlayer == .defender ? [.attacker] : [.defender, .king]

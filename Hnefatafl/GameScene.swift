@@ -20,6 +20,7 @@ class GameScene: SKScene {
     private var backgroundNodes: [SKNode] = []
     private var pieceGroup = SKNode()
     private var pieceNodes: [SKShapeNode] = []
+    private var isAnimating = false
     private let colorForPiece: [Game.Piece: UIColor] = [.attacker: .red, .defender: .blue, .king: .green]
     private let titleNode = SKLabelNode()
     private let pulse = SKAction.repeatForever(SKAction.sequence([SKAction.fadeAlpha(to: 0.67, duration: 1.5),
@@ -81,7 +82,8 @@ class GameScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard lastCaluculatedState == .playing,
+        guard isAnimating == false,
+              lastCaluculatedState == .playing,
               let location = touches.first?.location(in: self),
               let node = backgroundGroup.nodes(at: location).first,
               let index = backgroundNodes.index(of: node) else {
@@ -115,14 +117,15 @@ class GameScene: SKScene {
         let origin = pieceNodes[originX+originY*game.dimension].position
         let destination = pieceNodes[x+y*game.dimension].position
         pieceNodes[x+y*game.dimension].position = origin
+        isAnimating = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.66) { self.isAnimating = false }
         pieceNodes[x+y*game.dimension].run(SKAction.move(to: destination, duration: 0.33))
-        capturedPieces.forEach { point in
-            let (x,y,color) = point
+        capturedPieces.forEach { pieceInfo in
+            let (x,y,color) = pieceInfo
             self.pieceNodes[x+y*game.dimension].fillColor = color
             self.pieceNodes[x+y*game.dimension].run(SKAction.sequence([SKAction.wait(forDuration: 0.33),
                                                                        SKAction.fadeAlpha(to: 0, duration: 0.33)]))
         }
-
     }
 
     private func highlightNode(x: Int, y: Int, color: UIColor) {
