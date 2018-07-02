@@ -62,15 +62,13 @@ struct Game {
         guard canSelect(x: x, y: y) else {
             return []
         }
-        let lower = (stride(from: y-1, to: -1, by: -1).first { board[x+$0*dimension] != nil } ?? -1)
-        let upper = (stride(from: y+1, to: dimension, by: 1).first { board[x+$0*dimension] != nil } ?? dimension)
-        let left = (stride(from: x-1, to: -1, by: -1).first { board[$0+y*dimension] != nil } ?? -1)
-        let right = (stride(from: x+1, to: dimension, by: 1).first { board[$0+y*dimension] != nil } ?? dimension)
-        let moves =  [ stride(from: y-1, to: lower, by: -1).map { (x, $0) },
-                       (y+1..<upper).map { (x, $0) },
-                       stride(from: x-1, to: left, by: -1).map { ($0, y) },
-                       (x+1..<right).map { ($0, y)}
-                    ].flatMap{ (element: [(Int, Int)]) in element}
+        let lower = ((0..<y).reversed().first { board[x+$0*dimension] != nil } ?? -1) + 1
+        let left  = ((0..<x).reversed().first { board[$0+y*dimension] != nil } ?? -1) + 1
+        let upper = ((y+1..<dimension).first { board[x+$0*dimension] != nil } ?? dimension)
+        let right = ((x+1..<dimension).first { board[$0+y*dimension] != nil } ?? dimension)
+        let vertical = (lower..<upper).filter {$0 != y}.map { (x, $0) }
+        let horizontal = (left..<right).filter {$0 != x}.map { ($0, y) }
+        let moves = [vertical, horizontal].flatMap {$0}
         return board[x+y*dimension] == .king ? moves : moves.filter {!cornerIndices.contains($0.0+$0.1*dimension)}
     }
     mutating func moveFrom(_ start: (x:Int,y:Int), to end: (Int,Int)) -> [(Int,Int)] {
